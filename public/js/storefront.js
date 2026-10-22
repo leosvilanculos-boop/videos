@@ -101,7 +101,7 @@
   function escapeAttr(s) { return escapeHtml(s).replace(/'/g, '&#39;'); }
 
   var DEFAULT_POSTER_AT = 1;
-  var POSTER_CONCURRENCY = 5;
+  var POSTER_CONCURRENCY = 1;
   var POSTER_TIMEOUT_MS = 12000;
   var signedUrlCache = {};
   var posterImageCache = {};
@@ -220,9 +220,9 @@
     }
   }
 
-  function showPosterImage(container, src) {
+  function showPosterImage(container, src, lazy) {
     if (!container || !src) return null;
-    var video = container.querySelector('video');
+    var video = container.querySelector('video:not(.js-inline-player)');
     var img = container.querySelector('img.js-poster');
     if (!img) {
       img = document.createElement('img');
@@ -233,7 +233,7 @@
       if (video && video.parentNode === container) container.insertBefore(img, video);
       else container.insertBefore(img, container.firstChild);
     }
-    img.loading = 'eager';
+    img.loading = lazy ? 'lazy' : 'eager';
     img.src = src;
     img.style.display = 'block';
     if (video) {
@@ -291,7 +291,7 @@
         enqueuePosterJob(rec, false);
       });
       pumpPosterQueue();
-    }, { root: null, rootMargin: '0px 0px 480px 0px', threshold: 0.01 });
+    }, { root: null, rootMargin: '0px', threshold: 0.01 });
     return posterObserver;
   }
 
@@ -341,6 +341,12 @@
       if (opts.onReady) opts.onReady(savedImg);
       return savedImg;
     }
+    // Uncached legacy covers must not spend mobile users' data on video downloads.
+    var connection = global.navigator && global.navigator.connection;
+    if (connection && (connection.saveData || /(^|-)2g$/.test(connection.effectiveType || ''))) {
+      if (opts.onError) opts.onError(new Error('data-saving'));
+      return null;
+    }
     var url = opts.url || (await resolvePlaybackUrl(v));
     if (!url || !container.isConnected) {
       if (opts.onError) opts.onError(new Error('missing'));
@@ -369,7 +375,7 @@
         reject(new Error('missing'));
         return;
       }
-      var video = container.querySelector('video');
+      var video = container.querySelector('video:not(.js-inline-player)');
       if (!video) {
         video = document.createElement('video');
         video.muted = true;
@@ -441,6 +447,18 @@
   async function hydrateVideoPoster(v, container, opts) {
     opts = opts || {};
     if (!v || !container) return null;
+    // Prebuilt covers use one small image instead of downloading/decoding a video.
+    if (v.poster_url && !opts.skipStatic) {
+      var image = showPosterImage(container, v.poster_url, true);
+      return new Promise(function (resolve) {
+        image.onload = function () { if (opts.onReady) opts.onReady(image); resolve(image); };
+        image.onerror = function () {
+          image.remove();
+          resolve(hydrateVideoPoster(v, container, Object.assign({}, opts, { skipStatic: true })));
+        };
+        if (image.complete && image.naturalWidth) image.onload();
+      });
+    }
     var at = opts.at != null ? opts.at : posterAtSeconds(v);
     var key = posterCacheKey(v, at);
     var cached = posterImageCache[key] || readSessionPoster(key);

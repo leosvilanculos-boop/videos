@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{SITE_NAME}}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <style>
     :root {
       --primary: #ff1f3d;
@@ -1079,7 +1080,6 @@
               '<div class="vcard-media">' +
               '<div class="vcard-media-inner js-inner">' +
                 '<div class="skel js-skel"></div>' +
-                '<video class="js-thumb" muted playsinline preload="metadata" aria-hidden="true" style="display:none"></video>' +
                 '<video class="js-inline-player" playsinline controls preload="none" hidden aria-label="' + escapeAttr(v.title) + '"></video>' +
                 '<div class="grad-over"></div>' +
                 '<span class="vcard-media-title">' + escapeHtml(v.title) + '</span>' +
@@ -1250,30 +1250,43 @@
         document.getElementById('dlg-details').close();
       });
       document.getElementById('search').addEventListener('input', function () {
-        renderGrid(filterList(this.value), false);
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(function () {
+          renderGrid(filterList(document.getElementById('search').value), false);
+        }, 150);
       });
+      var searchTimer;
+
+      function refreshSupportLinks() {
+        var nav = document.getElementById('nav-tg');
+        nav.href = tgUser ? 'https://t.me/' + tgUser : '#';
+        nav.style.opacity = tgUser ? '' : '0.4';
+        var promoTg = document.getElementById('promo-tg');
+        if (promoTg) {
+          promoTg.href = tgUser ? tgUrlForPromo(tgUser) : '#';
+          promoTg.style.opacity = tgUser ? '' : '0.4';
+        }
+        document.querySelectorAll('.vcard[data-id]').forEach(function (card) {
+          var v = allVideos.find(function (item) { return String(item.id) === card.dataset.id; });
+          var link = card.querySelector('.btn-telegram');
+          if (v && link) link.href = tgUrlForVideo(v, tgUser);
+        });
+      }
 
       async function boot() {
         parseUrlParams();
         EBOOKS_ORIGIN = normalizeOrigin(EBOOKS_ORIGIN || '');
 
-        try {
-          var br = await fetch('/api/site-brief').then(function (r) { return r.json(); });
+        // Settings hydrate independently; a slow settings query cannot hold the catalog.
+        fetch('/api/site-brief').then(function (r) { return r.json(); }).then(function (br) {
           if (br.video_list_title) document.getElementById('grid-heading').textContent = br.video_list_title;
           if (br.telegram_username) tgUser = br.telegram_username.replace(/^@/, '');
           if (Array.isArray(br.crypto_wallets)) payCryptoWallets = br.crypto_wallets;
-        } catch (e) {}
-
-        var nav = document.getElementById('nav-tg');
-        if (tgUser) nav.href = 'https://t.me/' + tgUser;
-        else { nav.href = '#'; nav.style.opacity = '0.4'; }
+          refreshSupportLinks();
+        }).catch(function () {});
+        refreshSupportLinks();
         var promoPay = document.getElementById('promo-pay');
         if (promoPay) promoPay.addEventListener('click', startPromoCheckout);
-        var promoTg = document.getElementById('promo-tg');
-        if (promoTg) {
-          if (tgUser) promoTg.href = tgUrlForPromo(tgUser);
-          else { promoTg.href = '#'; promoTg.style.opacity = '0.4'; }
-        }
         document.getElementById('hydrate-chip').hidden = false;
         var vidRes = await fetch('/api/videos');
         document.getElementById('hydrate-chip').hidden = true;

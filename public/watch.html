@@ -515,7 +515,6 @@
               '<div class="more-thumb">' +
                 '<div class="more-thumb-ph js-more-ph">Video</div>' +
                 '<div class="js-more-inner">' +
-                  '<video class="js-more-vid" muted playsinline preload="metadata" aria-hidden="true" style="display:none"></video>' +
                 '</div>' +
                 '<span class="more-price">' + (isFree ? 'Free' : priceLabel) + '</span>' +
                 (dur ? '<span class="more-dur">' + escapeHtml(dur) + '</span>' : '') +
@@ -624,19 +623,24 @@
       async function boot() {
         parseUrlParams();
         EBOOKS_ORIGIN = normalizeOrigin(EBOOKS_ORIGIN || '');
-        try {
-          var br = await fetch('/api/site-brief').then(function (r) { return r.json(); });
+        fetch('/api/site-brief').then(function (r) { return r.json(); }).then(function (br) {
           if (br.telegram_username) tgUser = br.telegram_username.replace(/^@/, '');
           if (Array.isArray(br.crypto_wallets)) cryptoWallets = br.crypto_wallets;
-        } catch (e) {}
-        var nav = document.getElementById('nav-tg');
-        if (tgUser) nav.href = 'https://t.me/' + tgUser;
-        else { nav.href = '#'; nav.style.opacity = '0.4'; }
+          refreshNavigation();
+          if (currentVideo) renderPayPanel(currentVideo);
+        }).catch(function () {});
+        refreshNavigation();
         var id = getVideoId();
         if (!id) { document.getElementById('loading-state').hidden = true; document.getElementById('error-state').hidden = false; return; }
         var res = await fetch('/api/videos/' + encodeURIComponent(id));
         if (!res.ok) { document.getElementById('loading-state').hidden = true; document.getElementById('error-state').hidden = false; return; }
         showVideo((await res.json()).video);
+      }
+      function refreshNavigation() {
+        var nav = document.getElementById('nav-tg');
+        if (tgUser) nav.href = 'https://t.me/' + tgUser;
+        else { nav.href = '#'; nav.style.opacity = '0.4'; }
+        if (tgUser) nav.style.opacity = '';
       }
       var privacyDialog = document.getElementById('privacy-checkout-dialog');
       document.getElementById('privacy-checkout-close').addEventListener('click', function () { privacyDialog.close(); });

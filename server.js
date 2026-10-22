@@ -1,8 +1,9 @@
 import 'dotenv/config';
 import express from 'express';
+import compression from 'compression';
 import path from 'path';
 import crypto from 'crypto';
-import { readFileSync } from 'fs';
+import { readFileSync, readdirSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { createClient } from '@supabase/supabase-js';
 import { S3Client, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
@@ -11,6 +12,7 @@ import { registerPayjsrRoutes } from './payjsr-checkout.js';
 import { registerPaypalRoutes } from './paypal-checkout.js';
 import { createPurchaseRecorder } from './purchases.js';
 import { registerSecureCheckoutRedirects } from './secure-checkout.js';
+import { createTimedCache, posterFileName } from './catalog-performance.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -29,6 +31,16 @@ const TELEGRAM_USERNAME =
   '';
 const PAYPAL_CLIENT_ID = trimEnv('PAYPAL_CLIENT_ID');
 const PAYPAL_CHECKOUT_CONFIGURED = Boolean(PAYPAL_CLIENT_ID && trimEnv('PAYPAL_CLIENT_SECRET'));
+const htmlTemplates = new Map();
+const posterFiles = new Set();
+try { readdirSync(path.join(__dirname, 'public/posters')).forEach(name => posterFiles.add(name)); } catch { /* optional prebuilt covers */ }
+const assetVersion = crypto.createHash('sha256');
+for (const folder of ['css', 'js']) {
+  for (const name of readdirSync(path.join(__dirname, 'public', folder)).sort()) {
+    assetVersion.update(readFileSync(path.join(__dirname, 'public', folder, name)));
+  }
+}
+const ASSET_VERSION = assetVersion.digest('hex').slice(0, 12);
 
 function escapeJsString(value) {
   return String(value || '')
@@ -217,6 +229,7 @@ function enrichVideoRow(row) {
 
   return {
     ...row,
+    poster_url: posterFiles.has(posterFileName(row)) ? `/posters/${posterFileName(row)}` : '',
     video_sources: sortedSources,
     /** Only explicit public URLs stored in DB */
     playback_url:
@@ -254,6 +267,7 @@ function sanitizeObjectKey(raw) {
   return raw;
 }
 
+app.use(compression());
 app.use(express.json());
 registerSecureCheckoutRedirects(app, EBOOKS_SITE_URL);
 const purchaseRecorder = createPurchaseRecorder(() => supabase);
@@ -410,7 +424,10 @@ async function videoDbWrite(writeFn, payload) {
   let fields = { ...payload };
   for (let attempt = 0; attempt < 8; attempt++) {
     const result = await writeFn(fields);
-    if (!result.error) return result;
+    if (!result.error) {
+      catalogCache.clear();
+      return result;
+    }
     const stripped = stripColumnFromPayload(fields, result.error.message);
     if (!stripped) return result;
     fields = stripped;
@@ -542,20 +559,11 @@ function normalizeTelegramUsername(raw) {
 }
 
 async function resolveTelegramUsername() {
-  let telegram = TELEGRAM_USERNAME;
-  if (supabase) {
-    try {
-      const { data } = await supabase
-        .from('site_config')
-        .select('telegram_username')
-        .limit(1)
-        .maybeSingle();
-      if (data?.telegram_username) telegram = data.telegram_username;
-    } catch (e) {
-      console.warn('site_config telegram_username read failed:', e.message);
-    }
+  try {
+    return normalizeTelegramUsername((await siteBriefCache.get()).telegram_username);
+  } catch {
+    return normalizeTelegramUsername(TELEGRAM_USERNAME);
   }
-  return normalizeTelegramUsername(telegram);
 }
 
 async function getSiteConfigRow() {
@@ -590,29 +598,36 @@ function prepareCryptoForDb(wallets) {
     .map((w) => ({ symbol: w.symbol, address: w.address, label: w.label }));
 }
 
-app.get('/api/site-brief', async (req, res) => {
-  try {
+const siteBriefCache = createTimedCache(async () => {
     let videoListTitle = trimEnv('VIDEO_LIST_TITLE', 'VITE_VIDEO_LIST_TITLE');
-    let telegram = await resolveTelegramUsername();
+    let telegram = TELEGRAM_USERNAME;
     let cryptoFromDb = [];
     if (supabase) {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('site_config')
         .select('video_list_title, telegram_username, crypto')
         .limit(1)
         .maybeSingle();
+      if (error) throw error;
       if (data?.video_list_title) videoListTitle = data.video_list_title;
       if (data?.telegram_username) telegram = String(data.telegram_username).replace(/^@/, '').trim();
       cryptoFromDb = normalizeCryptoList(data?.crypto);
     }
     const cryptoFromEnv = normalizeCryptoList(trimEnv('CRYPTO_WALLETS_JSON', 'VITE_CRYPTO_WALLETS_JSON'));
     const crypto_wallets = mergeCryptoDedup(cryptoFromDb, cryptoFromEnv);
-    res.json({
+    return {
       video_list_title: videoListTitle || '',
       telegram_username: (telegram || '').replace(/^@/, ''),
       crypto_wallets,
-    });
+    };
+}, 30_000);
+
+app.get('/api/site-brief', async (req, res) => {
+  try {
+    res.set('Cache-Control', 'public, max-age=30');
+    res.json(await siteBriefCache.get());
   } catch {
+    res.set('Cache-Control', 'no-store');
     const crypto_wallets = normalizeCryptoList(trimEnv('CRYPTO_WALLETS_JSON', 'VITE_CRYPTO_WALLETS_JSON'));
     res.json({
       video_list_title: '',
@@ -689,14 +704,8 @@ app.get('/api/videos/:id', async (req, res) => {
   }
 });
 
-app.get('/api/videos', async (req, res) => {
-  try {
-    if (!supabase) {
-      return res.status(500).json({
-        error: 'Supabase not configured (set SUPABASE_URL / VITE_SUPABASE_URL plus anon or service role key).',
-      });
-    }
-
+const catalogCache = createTimedCache(async () => {
+    if (!supabase) throw new Error('Supabase not configured');
     const baseQuery = () => supabase.from('videos').select('*').eq('is_active', true);
 
     let rows = [];
@@ -710,13 +719,11 @@ app.get('/api/videos', async (req, res) => {
     if (joined.error && /relationship|foreign|video_sources|schema cache/i.test(String(joined.error.message || ''))) {
       const fb = await baseQuery().order('created_at', { ascending: false });
       if (fb.error) {
-        console.error('Supabase videos error:', fb.error);
-        return res.status(502).json({ error: fb.error.message || 'Database error' });
+        throw fb.error;
       }
       rows = fb.data || [];
     } else if (joined.error) {
-      console.error('Supabase videos error:', joined.error);
-      return res.status(502).json({ error: joined.error.message || 'Database error' });
+      throw joined.error;
     } else {
       rows = joined.data || [];
     }
@@ -731,29 +738,34 @@ app.get('/api/videos', async (req, res) => {
       return createdOrder || String(a?.id || '').localeCompare(String(b?.id || ''));
     });
 
-    const w = await resolveWasabiSigningConfig();
-    const payload = rows.map(enrichVideoRow).map((r) => ({
-      ...r,
-      wasabi_signing_ready: Boolean(w.signingReady),
-    }));
+    const payload = rows.map(enrichVideoRow);
+    return { videos: payload };
+}, 30_000);
 
+app.get('/api/videos', async (req, res) => {
+  try {
     res.setHeader('Cache-Control', 'public, max-age=60');
-    res.json({ videos: payload });
+    res.json(await catalogCache.get());
   } catch (e) {
     console.error(e);
+    res.set('Cache-Control', 'no-store');
     res.status(500).json({ error: 'Failed to load videos' });
   }
 });
 
 async function renderHtmlTemplate(fileName) {
-  const telegram = await resolveTelegramUsername();
-  const html = readFileSync(path.join(__dirname, 'public', fileName), 'utf8');
+  // The page shell must not wait for the database. /api/site-brief hydrates settings.
+  if (!htmlTemplates.has(fileName)) {
+    htmlTemplates.set(fileName, readFileSync(path.join(__dirname, 'public', fileName), 'utf8'));
+  }
+  const html = htmlTemplates.get(fileName);
   return html
     .replace(/\{\{SITE_NAME\}\}/g, SITE_NAME)
-    .replace(/\{\{TELEGRAM_USERNAME\}\}/g, telegram)
+    .replace(/\{\{TELEGRAM_USERNAME\}\}/g, normalizeTelegramUsername(TELEGRAM_USERNAME))
     .replace(/\{\{EBOOKS_SITE_URL\}\}/g, EBOOKS_SITE_URL)
     .replace(/\{\{PAYPAL_CLIENT_ID\}\}/g, escapeJsString(PAYPAL_CLIENT_ID))
-    .replace(/\{\{PAYPAL_ENABLED\}\}/g, PAYPAL_CHECKOUT_CONFIGURED ? 'true' : 'false');
+    .replace(/\{\{PAYPAL_ENABLED\}\}/g, PAYPAL_CHECKOUT_CONFIGURED ? 'true' : 'false')
+    .replace(/((?:src|href)="\/(?:js|css)\/[^"?]+)(")/g, `$1?v=${ASSET_VERSION}$2`);
 }
 
 app.get('/', async (req, res) => {
@@ -888,6 +900,7 @@ app.patch('/api/admin/settings', requireAdmin, async (req, res) => {
 
     const { data, error } = await upsertSiteConfigFields(patch);
     if (error) return res.status(502).json({ error: error.message });
+    siteBriefCache.clear();
 
     const cryptoFromDb = normalizeCryptoList(data?.crypto);
     const cryptoFromEnv = normalizeCryptoList(trimEnv('CRYPTO_WALLETS_JSON', 'VITE_CRYPTO_WALLETS_JSON'));
@@ -1083,6 +1096,7 @@ app.delete('/api/admin/videos/:id', requireAdmin, async (req, res) => {
 
     if (error) return res.status(502).json({ error: error.message });
     if (!data) return res.status(404).json({ error: 'Vídeo não encontrado' });
+    catalogCache.clear();
     res.json({ ok: true });
   } catch (e) {
     console.error(e);
@@ -1121,7 +1135,17 @@ app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), {
+  maxAge: '1h',
+  setHeaders(res, filePath) {
+    if (path.extname(filePath) === '.html') res.set('Cache-Control', 'no-cache');
+    else if (filePath.includes(`${path.sep}posters${path.sep}`)) {
+      res.set('Cache-Control', 'public, max-age=31536000, immutable');
+    } else if (res.req.query.v === ASSET_VERSION) {
+      res.set('Cache-Control', 'public, max-age=31536000, immutable');
+    }
+  },
+}));
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`${SITE_NAME} — videos storefront on port ${PORT}`);

@@ -1,0 +1,46 @@
+{
+  "testedAt": "2026-10-22T10:46:47.726Z",
+  "network": {
+    "latencyMs": 150,
+    "downloadMbps": 1.536,
+    "cpuSlowdown": 4
+  },
+  "reports": [
+    {
+      "label": "desktop",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "catalogMs": 1459,
+      "cards": 32,
+      "staticCovers": 32,
+      "videoRequestsBeforePlay": 0,
+      "signingRequestsBeforePlay": 0,
+      "overflow": false,
+      "search": "passed",
+      "support": "passed",
+      "paymentDialog": "passed",
+      "previewPlayer": "passed",
+      "jsErrors": []
+    },
+    {
+      "label": "mobile",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "catalogMs": 2438,
+      "cards": 32,
+      "staticCovers": 32,
+      "videoRequestsBeforePlay": 0,
+      "signingRequestsBeforePlay": 0,
+      "overflow": false,
+      "search": "passed",
+      "support": "passed",
+      "paymentDialog": "passed",
+      "previewPlayer": "passed",
+      "jsErrors": []
+    }
+  ]
+}
