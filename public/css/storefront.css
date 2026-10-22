@@ -110,7 +110,14 @@ a, button, input, select { -webkit-tap-highlight-color: transparent; }
 }
 .vcard:hover .play-circ { transform: scale(1.06); background: #fff; }
 .play-tri { border-top-width: 8px; border-bottom-width: 8px; border-left: 12px solid #09090b; margin-left: 3px; }
-.tap-play { display: none; }
+.tap-play {
+  display: inline-flex;
+  padding: .32rem .7rem;
+  border: 1px solid rgba(255, 255, 255, .25);
+  border-radius: 999px;
+  background: rgba(8, 8, 12, .8);
+  text-transform: none;
+}
 .grad-over { background: linear-gradient(to top, rgba(0,0,0,.35), transparent 50%); }
 .badge-price { flex-direction: row; align-items: baseline; gap: .1rem; }
 .badge-price em, .vcard-ph-free .badge-price { color: var(--primary); }
