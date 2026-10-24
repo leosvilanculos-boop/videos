@@ -559,14 +559,22 @@
   </header>
 
   <main class="container" id="main-content">
-    <div class="promo-banner">
+    <div class="promo-banner" aria-labelledby="promo-heading">
       <div class="promo-copy">
-        <div class="promo-title">All Content Promo — $100 USD</div>
-        <div class="promo-sub">One-time payment. Instant delivery after payment confirmation.</div>
+        <div class="promo-eyebrow">All-content bundle</div>
+        <h2 class="promo-title" id="promo-heading">Get the complete collection</h2>
+        <p class="promo-sub">All videos and folders in the current catalog, together in one purchase.</p>
+        <ul class="promo-includes" aria-label="Included in the bundle">
+          <li id="promo-catalog-count">Every catalog item included</li>
+          <li>One-time payment</li>
+        </ul>
+        <p class="promo-comparison">Individual access unlocks one selected item. This bundle unlocks the full current catalog.</p>
+        <p class="promo-delivery">Instant delivery after payment confirmation.</p>
       </div>
       <div class="promo-actions">
+        <div class="promo-price"><span>Complete collection</span><strong>$100 <small>USD</small></strong></div>
         <button type="button" class="promo-btn primary" id="promo-pay">
-          <span>Get All Content Promo</span>
+          <span>Get full access — $100</span>
           <span class="promo-payment-icons" aria-label="Card and Apple Pay">
             <svg class="card-mark" viewBox="0 0 24 16" fill="none" aria-hidden="true"><rect x="1" y="1" width="22" height="14" rx="2" stroke="currentColor" stroke-width="2"/><path d="M2 5h20" stroke="currentColor" stroke-width="2"/></svg>
             <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.36 12.28c.02 2.06 1.81 2.75 1.83 2.76-.02.05-.29 1.02-.95 2.02-.57.86-1.17 1.71-2.11 1.73-.92.02-1.22-.56-2.28-.56-1.05 0-1.39.54-2.26.58-.9.03-1.59-.92-2.17-1.77-1.18-1.71-2.08-4.84-.87-6.95.6-1.05 1.68-1.72 2.85-1.74.89-.02 1.73.6 2.28.6.54 0 1.56-.74 2.63-.63.45.02 1.72.18 2.54 1.38-.07.04-1.52.89-1.5 2.58ZM14.63 5.78c.48-.58.8-1.39.71-2.2-.69.03-1.53.46-2.03 1.04-.45.52-.84 1.35-.73 2.14.77.06 1.57-.39 2.05-.98Z"/></svg>
@@ -574,7 +582,7 @@
             <svg class="cash-mark" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 1.5 9.9 3.6c-2.2-.5-4.1.6-4.1 2.8 0 1.5.9 2.3 3.6 3.1 2.3.7 3.1 1.2 3.1 2.4 0 1.3-1 2.1-2.6 2.1-1.4 0-2.7-.6-3.8-1.7l-2 2.1c1.1 1.3 2.6 2.1 4.4 2.4v2.9h2.8v-2.9c2.6-.4 4.2-2.1 4.2-4.7 0-2.3-1.2-3.5-4.4-4.5-2.1-.6-2.8-1.1-2.8-2.1 0-.9.7-1.4 1.9-1.4 1.2 0 2.4.5 3.4 1.4l1.9-2.2a8 8 0 0 0-4-1.9V1.5H12Z"/></svg>
           </span>
         </button>
-        <a class="promo-btn" id="promo-tg" href="#" target="_blank" rel="noopener">Ask on Telegram</a>
+        <a class="promo-btn" id="promo-tg" href="#" target="_blank" rel="noopener">Questions? Contact support</a>
       </div>
     </div>
 
@@ -733,7 +741,7 @@
         var p = Number(price) || 0;
         return (
           '<button type="button" class="btn btn-primary btn-buy btn-card-buy js-payopen">' +
-            '<span class="btn-buy-main"><span class="btn-buy-icon" aria-hidden="true">' + CARD_ICON + '</span> Pay Now</span>' +
+            '<span class="btn-buy-main"><span class="btn-buy-icon" aria-hidden="true">' + CARD_ICON + '</span> Get access — $' + p.toFixed(2) + '</span>' +
           '</button>'
         );
       }
@@ -1251,6 +1259,10 @@
         }
         var pack = await vidRes.json();
         allVideos = orderVideosForGrid(pack.videos || []);
+        var bundleCount = document.getElementById('promo-catalog-count');
+        if (bundleCount && allVideos.length) {
+          bundleCount.textContent = allVideos.length + (allVideos.length === 1 ? ' catalog item included' : ' catalog items included');
+        }
         renderGrid(allVideos, false);
       }
 

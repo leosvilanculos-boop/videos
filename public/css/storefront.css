@@ -440,7 +440,40 @@ body {
 .promo-copy { flex: 1; min-width: 0; }
 .promo-title { color: #fff; font-size: clamp(1.3rem, 2.4vw, 1.8rem); }
 .promo-sub { color: #c4c4ce; margin-bottom: 0; }
-.promo-actions { flex-shrink: 0; }
+.promo-actions {
+  flex: 0 0 280px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: .6rem;
+}
+.promo-eyebrow {
+  margin-bottom: .55rem;
+  color: #c5c7da;
+  font-size: .68rem;
+  font-weight: 800;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+}
+.promo-includes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .45rem 1rem;
+  margin: .85rem 0 .65rem;
+  padding: 0;
+  list-style: none;
+  color: #e4e4ea;
+  font-size: .8rem;
+  font-weight: 600;
+}
+.promo-includes li::before { content: '✓'; margin-right: .4rem; color: #ffd65a; }
+.promo-comparison { max-width: 560px; margin: 0; color: #b4b4bf; font-size: .8rem; line-height: 1.6; }
+.promo-delivery { margin: .8rem 0 0; color: #fafafa; font-size: .8rem; font-weight: 700; line-height: 1.5; }
+.promo-price { display: flex; flex-direction: column; gap: .1rem; text-align: center; }
+.promo-price > span { color: #c4c4ce; font-size: .75rem; }
+.promo-price strong { color: #fff; font-size: 2.3rem; line-height: 1.15; letter-spacing: -.04em; }
+.promo-price small { font-size: .75rem; letter-spacing: 0; color: #c4c4ce; font-weight: 600; }
+.promo-actions #promo-pay { min-height: 48px; font-size: .85rem; }
+.promo-actions #promo-tg { align-self: center; min-height: 44px; padding: .55rem .2rem; text-align: center; font-size: .78rem; }
 .promo-btn.primary, .btn-primary, .btn-card-buy {
   color: #fff;
   background: linear-gradient(135deg, #7278ff, #555ee5);
@@ -505,13 +538,13 @@ body {
 .card-actions .btn-card-buy { flex: none; width: 100%; }
 .btn-buy .btn-buy-main { font-size: .95rem; font-weight: 800; gap: .45rem; }
 .btn-buy-icon svg { width: 1rem; height: 1rem; }
-.btn-card-buy, .btn-primary.btn-card-buy {
+.btn-card-buy, .btn-primary.btn-card-buy, .promo-btn.primary, #btn-pay-instant {
   color: #191919;
   background: linear-gradient(180deg, #ffd65a, #ffc431);
   border-color: #ffd04a;
   box-shadow: 0 8px 24px rgba(255, 196, 49, .25);
 }
-.btn-card-buy:hover, .btn-primary.btn-card-buy:hover {
+.btn-card-buy:hover, .btn-primary.btn-card-buy:hover, .promo-btn.primary:hover, #btn-pay-instant:hover {
   color: #111;
   background: linear-gradient(180deg, #ffe17a, #ffca42);
   border-color: #ffe17a;
@@ -525,17 +558,27 @@ body {
   min-width: 0;
   min-height: 32px !important;
   padding: .32rem .95rem !important;
-  color: #fff !important;
-  background: linear-gradient(180deg, #e5134b, #ca0739) !important;
+  color: #b4b4bf !important;
+  background: transparent !important;
   border: 0 !important;
   border-radius: 999px;
-  box-shadow: 0 6px 16px rgba(220, 9, 63, .28);
+  box-shadow: none;
   font-size: .78rem !important;
-  font-weight: 700;
+  font-weight: 500;
   gap: .3rem;
 }
-.vcard .btn-telegram-block:hover { background: linear-gradient(180deg, #f21f5a, #d90b43) !important; }
+.vcard .btn-telegram-block:hover { background: rgba(255, 255, 255, .06) !important; color: #fafafa !important; }
 .vcard .btn-telegram-block svg { width: .85rem; height: .85rem; }
+#btn-contact-tg.btn-telegram {
+  min-height: 44px;
+  background: transparent !important;
+  border-color: transparent !important;
+  color: #b4b4bf !important;
+  box-shadow: none;
+  font-size: .8rem;
+  font-weight: 500;
+}
+#btn-contact-tg.btn-telegram:hover { background: rgba(255, 255, 255, .06) !important; color: #fafafa !important; }
 .btn-card-preview { background: rgba(255, 255, 255, .045); border-color: var(--stroke); color: #e4e4ea; }
 .btn-card-preview:hover { background: rgba(255, 255, 255, .1); border-color: var(--stroke-hover); }
 .dlg-modal[open], .pay-summary, .dlg-h { background: #111115; border-color: var(--stroke); }
@@ -572,7 +615,7 @@ body {
 .btn-success-tg { background: linear-gradient(135deg, #7278ff, #555ee5); box-shadow: 0 10px 30px rgba(89, 98, 233, .3); }
 @media (max-width: 700px) {
   .promo-banner { align-items: stretch; flex-direction: column; gap: .9rem; }
-  .promo-actions { flex-shrink: 1; }
+  .promo-actions { flex: none; }
   .promo-btn.primary { min-width: 100%; }
 }
 @media (max-width: 640px) {
