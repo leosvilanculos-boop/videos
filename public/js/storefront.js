@@ -34,6 +34,35 @@
     return '/api/checkout?bundle=true';
   }
 
+  var processingButtons = [];
+
+  function setCheckoutProcessing(button) {
+    if (!button) return true;
+    if (button.disabled) return false;
+    processingButtons.push({ button: button, html: button.innerHTML });
+    button.disabled = true;
+    button.setAttribute('aria-busy', 'true');
+    button.classList.add('is-processing');
+    button.textContent = 'Processing…';
+    return true;
+  }
+
+  function resetCheckoutProcessing() {
+    processingButtons.forEach(function (entry) {
+      entry.button.innerHTML = entry.html;
+      entry.button.disabled = false;
+      entry.button.removeAttribute('aria-busy');
+      entry.button.classList.remove('is-processing');
+    });
+    processingButtons = [];
+  }
+
+  if (global.addEventListener) {
+    global.addEventListener('pageshow', function (event) {
+      if (event.persisted) resetCheckoutProcessing();
+    });
+  }
+
   function watchUrl(videoId, preview) {
     var u = '/watch?id=' + encodeURIComponent(videoId || '');
     if (preview) u += '&preview=1';
@@ -582,6 +611,8 @@
     ebooksSuccessUrl: ebooksSuccessUrl,
     checkoutUrl: checkoutUrl,
     bundleCheckoutUrl: bundleCheckoutUrl,
+    setCheckoutProcessing: setCheckoutProcessing,
+    resetCheckoutProcessing: resetCheckoutProcessing,
     watchUrl: watchUrl,
     shuffleVideos: shuffleVideos,
     formatDuration: formatDuration,

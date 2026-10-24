@@ -793,13 +793,14 @@
         return 'https://t.me/share/url?url=&text=' + enc;
       }
 
-      function startCheckout(price, maskedName, displayTitle, videoId) {
+      function startCheckout(price, maskedName, displayTitle, videoId, button) {
         var targetUrl = Storefront.checkoutUrl(EBOOKS_ORIGIN, price, maskedName, displayTitle, videoId);
-        if (targetUrl) window.location.assign(targetUrl);
+        if (targetUrl && Storefront.setCheckoutProcessing(button)) window.location.assign(targetUrl);
       }
 
-      function startPromoCheckout() {
-        window.location.assign(Storefront.bundleCheckoutUrl());
+      function startPromoCheckout(event) {
+        var button = event && event.currentTarget;
+        if (Storefront.setCheckoutProcessing(button)) window.location.assign(Storefront.bundleCheckoutUrl());
       }
 
       function setErr(t) {
@@ -808,9 +809,9 @@
         el.hidden = !t;
       }
 
-      function startVideoCheckout(video) {
+      function startVideoCheckout(video, button) {
         if (!video || video.is_free) return;
-        startCheckout(video.price, null, video.title, video.id);
+        startCheckout(video.price, null, video.title, video.id, button);
       }
 
       function parseUrlParams() {
@@ -1086,7 +1087,7 @@
           var po = el.querySelector('.js-payopen');
           if (po) po.addEventListener('click', function (e) {
             e.stopPropagation();
-            startVideoCheckout(v);
+            startVideoCheckout(v, e.currentTarget);
           });
 
           g.appendChild(el);
@@ -1191,9 +1192,8 @@
           telegramBtnHtml(tgUrlForVideo(v, tgUser)) +
           '</div>';
         var bp = d.querySelector('.js-dpay');
-        if (bp) bp.addEventListener('click', function () {
-          d.close();
-          startVideoCheckout(v);
+        if (bp) bp.addEventListener('click', function (event) {
+          startVideoCheckout(v, event.currentTarget);
         });
         d.showModal();
         syncModalBodyClass();

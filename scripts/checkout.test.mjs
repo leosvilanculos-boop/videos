@@ -97,7 +97,9 @@ test('catalog and watch button handlers use the shared checkout entry point', ()
       vm.runInNewContext(promo + '\nstartPromoCheckout();', context);
       assert.equal(destination, '/api/checkout?bundle=true');
     } else {
-      const elements = { 'v-price': {}, 'btn-contact-tg': {}, 'btn-pay-instant': {} };
+      const elements = { 'v-price': {}, 'btn-contact-tg': {}, 'btn-pay-instant': {
+        setAttribute() {}, classList: { add() {} },
+      } };
       context.document = { getElementById(id) {
         assert.ok(elements[id], `Unexpected intermediate UI: ${id}`);
         return elements[id];

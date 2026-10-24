@@ -39,6 +39,25 @@ a, button, input, select { -webkit-tap-highlight-color: transparent; }
 .promo-countdown.is-expired { border-color: rgba(255, 107, 129, .35); background: rgba(68, 21, 32, .35); }
 .promo-countdown.is-expired .promo-countdown-label, .promo-countdown.is-expired strong { color: #ff9baa; }
 .promo-btn.primary:disabled { cursor: not-allowed; opacity: .55; transform: none; }
+.btn.is-processing, .promo-btn.is-processing {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  cursor: progress !important;
+  opacity: .85 !important;
+}
+.is-processing::before {
+  content: '';
+  width: .9rem;
+  height: .9rem;
+  flex: 0 0 .9rem;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: checkout-spin .8s linear infinite;
+}
+@keyframes checkout-spin { to { transform: rotate(360deg); } }
 .promo-actions { align-items: center; gap: .75rem; }
 .promo-btn { padding: .6rem .85rem; font-size: .8rem; }
 #promo-tg { background: transparent; border-color: transparent; box-shadow: none; padding: .6rem .25rem; color: var(--muted); }

@@ -528,9 +528,9 @@
         var enc = encodeURIComponent(telegramInterestMessage(v.title, v.price));
         return tgUser ? 'https://t.me/' + tgUser + '?text=' + enc : 'https://t.me/share/url?url=&text=' + enc;
       }
-      function startCheckout(price, maskedName, displayTitle, videoId) {
+      function startCheckout(price, maskedName, displayTitle, videoId, button) {
         var targetUrl = Storefront.checkoutUrl(EBOOKS_ORIGIN, price, maskedName, displayTitle, videoId);
-        if (targetUrl) window.location.assign(targetUrl);
+        if (targetUrl && Storefront.setCheckoutProcessing(button)) window.location.assign(targetUrl);
       }
       function setErr(t) { var el = document.getElementById('err-banner'); el.textContent = t || ''; el.hidden = !t; }
       function parseUrlParams() {
@@ -574,7 +574,7 @@
         var payBtn = document.getElementById('btn-pay-instant');
         if (payBtn) {
           payBtn.onclick = function () {
-            startCheckout(v.price, null, v.title, v.id);
+            startCheckout(v.price, null, v.title, v.id, payBtn);
           };
         }
         if (cryptoWallets.length) {
