@@ -411,26 +411,6 @@
     </section>
   </main>
 
-  <dialog id="privacy-checkout-dialog" class="dlg-modal" aria-labelledby="privacy-checkout-title">
-    <div class="dlg-h">
-      <strong id="privacy-checkout-title">Private checkout</strong>
-      <button type="button" class="dlg-x" id="privacy-checkout-close" aria-label="Close">×</button>
-    </div>
-    <div class="dlg-b">
-      <p>Checkout shows the generic product name <strong style="color:var(--text)">Digital Ebook</strong>. Your content is delivered immediately after payment confirmation.</p>
-      <div class="video-payment-methods">
-        <button type="button" class="btn btn-primary btn-pay-cta" id="privacy-checkout-payjsr"><span class="btn-pay-inner"><span class="btn-pay-text">Pay Instantly</span>
-          <span class="pay-method-icons" aria-label="Card and Apple Pay">
-            <span class="pay-method-badge" title="Card" aria-label="Card"><svg class="pay-icon-card" viewBox="0 0 24 16" fill="none" aria-hidden="true"><rect x="1" y="1" width="22" height="14" rx="2" stroke="currentColor" stroke-width="2"/><path d="M2 5h20" stroke="currentColor" stroke-width="2"/></svg></span>
-            <span class="pay-method-badge" title="Apple Pay" aria-label="Apple Pay"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.36 12.28c.02 2.06 1.81 2.75 1.83 2.76-.02.05-.29 1.02-.95 2.02-.57.86-1.17 1.71-2.11 1.73-.92.02-1.22-.56-2.28-.56-1.05 0-1.39.54-2.26.58-.9.03-1.59-.92-2.17-1.77-1.18-1.71-2.08-4.84-.87-6.95.6-1.05 1.68-1.72 2.85-1.74.89-.02 1.73.6 2.28.6.54 0 1.56-.74 2.63-.63.45.02 1.72.18 2.54 1.38-.07.04-1.52.89-1.5 2.58ZM14.63 5.78c.48-.58.8-1.39.71-2.2-.69.03-1.53.46-2.03 1.04-.45.52-.84 1.35-.73 2.14.77.06 1.57-.39 2.05-.98Z"/></svg></span>
-            <span class="pay-method-badge" title="Amazon Pay" aria-label="Amazon Pay"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 8c4.4 3.2 13.6 3.2 18 0M4 11c3.9 2.5 12.1 2.5 16 0M6 14c3 1.8 9 1.8 12 0" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>
-            <span class="pay-method-badge" title="Cash App" aria-label="Cash App"><svg class="cashapp-mark" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 1.5 9.9 3.6c-2.2-.5-4.1.6-4.1 2.8 0 1.5.9 2.3 3.6 3.1 2.3.7 3.1 1.2 3.1 2.4 0 1.3-1 2.1-2.6 2.1-1.4 0-2.7-.6-3.8-1.7l-2 2.1c1.1 1.3 2.6 2.1 4.4 2.4v2.9h2.8v-2.9c2.6-.4 4.2-2.1 4.2-4.7 0-2.3-1.2-3.5-4.4-4.5-2.1-.6-2.8-1.1-2.8-2.1 0-.9.7-1.4 1.9-1.4 1.2 0 2.4.5 3.4 1.4l1.9-2.2a8 8 0 0 0-4-1.9V1.5H12Z"/></svg></span>
-          </span>
-        </span></button>
-      </div>
-      <button type="button" class="btn" id="privacy-checkout-cancel" style="margin-top:0.5rem">Cancel</button>
-    </div>
-  </dialog>
 
   <footer>
     <p>© {{SITE_NAME}} · 18+ only</p>
@@ -471,7 +451,7 @@
         return '/watch?id=' + encodeURIComponent(String(id || ''));
       }
       function shuffle(arr) {
-        return (arr || []).slice();
+        return Storefront.shuffleVideos(arr);
       }
       function hydrateMoreThumbs(videos) {
         if (typeof Storefront === 'undefined') return;
@@ -594,7 +574,7 @@
         var payBtn = document.getElementById('btn-pay-instant');
         if (payBtn) {
           payBtn.onclick = function () {
-            document.getElementById('privacy-checkout-dialog').showModal();
+            startCheckout(v.price, null, v.title, v.id);
           };
         }
         if (cryptoWallets.length) {
@@ -642,15 +622,6 @@
         else { nav.href = '#'; nav.style.opacity = '0.4'; }
         if (tgUser) nav.style.opacity = '';
       }
-      var privacyDialog = document.getElementById('privacy-checkout-dialog');
-      document.getElementById('privacy-checkout-close').addEventListener('click', function () { privacyDialog.close(); });
-      document.getElementById('privacy-checkout-cancel').addEventListener('click', function () { privacyDialog.close(); });
-      document.getElementById('privacy-checkout-payjsr').addEventListener('click', function () {
-        privacyDialog.close();
-        if (currentVideo && !currentVideo.is_free) {
-          startCheckout(currentVideo.price, null, currentVideo.title, currentVideo.id);
-        }
-      });
       boot().catch(function (e) {
         document.getElementById('loading-state').hidden = true;
         document.getElementById('error-state').hidden = false;

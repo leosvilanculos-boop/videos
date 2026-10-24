@@ -40,6 +40,17 @@
     return u;
   }
 
+  function shuffleVideos(videos) {
+    var list = (videos || []).slice();
+    for (var i = list.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var item = list[i];
+      list[i] = list[j];
+      list[j] = item;
+    }
+    return list;
+  }
+
   function formatDuration(d) {
     if (d == null || d === '') return '';
     if (typeof d === 'number' && !isNaN(d)) {
@@ -572,6 +583,7 @@
     checkoutUrl: checkoutUrl,
     bundleCheckoutUrl: bundleCheckoutUrl,
     watchUrl: watchUrl,
+    shuffleVideos: shuffleVideos,
     formatDuration: formatDuration,
     formatViews: formatViews,
     formatDateRel: formatDateRel,

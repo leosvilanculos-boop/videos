@@ -78,21 +78,36 @@ test('missing or ambiguous video identity is rejected', async () => {
 test('catalog and watch button handlers use the shared checkout entry point', () => {
   for (const page of ['index', 'watch']) {
     const html = readFileSync(new URL(`../public/${page}.html`, import.meta.url), 'utf8');
+    assert.doesNotMatch(html, /PrivacyCheckout|privacy-checkout|dlg-video-payment/);
     // Compile all inline scripts as well as exercising the actual click handlers.
     for (const match of html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)) new vm.Script(match[1]);
     let destination;
     const context = {
       Storefront: storefront, EBOOKS_ORIGIN: '',
       window: { location: { assign(url) { destination = url; } } },
-      PrivacyCheckout: { open(callback) { callback(); } },
     };
     const start = html.match(/      function startCheckout\([^]*?\n      \}/)[0];
     vm.runInNewContext(start + '\nstartCheckout(25, null, "Video", "video-1");', context);
     assert.equal(destination, '/api/checkout?video_id=video-1');
     if (page === 'index') {
+      const video = html.match(/      function startVideoCheckout\([^]*?\n      \}/)[0];
+      vm.runInNewContext(start + '\n' + video + '\nstartVideoCheckout({id:"video-2",title:"Video",price:35,is_free:false});', context);
+      assert.equal(destination, '/api/checkout?video_id=video-2');
       const promo = html.match(/      function startPromoCheckout\([^]*?\n      \}/)[0];
       vm.runInNewContext(promo + '\nstartPromoCheckout();', context);
       assert.equal(destination, '/api/checkout?bundle=true');
+    } else {
+      const elements = { 'v-price': {}, 'btn-contact-tg': {}, 'btn-pay-instant': {} };
+      context.document = { getElementById(id) {
+        assert.ok(elements[id], `Unexpected intermediate UI: ${id}`);
+        return elements[id];
+      } };
+      context.cryptoWallets = [];
+      context.tgUrlForVideo = () => '#';
+      const panel = html.match(/      function renderPayPanel\([^]*?\n      \}/)[0];
+      vm.runInNewContext(start + '\n' + panel + '\nrenderPayPanel({id:"video-3",title:"Video",price:45,is_free:false});', context);
+      elements['btn-pay-instant'].onclick();
+      assert.equal(destination, '/api/checkout?video_id=video-3');
     }
   }
 });
