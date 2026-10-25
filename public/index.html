@@ -893,7 +893,7 @@
               bonusBtn.hidden = false;
             }
             if (spinner) spinner.hidden = true;
-            if (result.delivery_via_telegram) {
+            if (result.delivery_via_telegram && !result.product_link) {
               if (message) message.textContent = 'Your All Content Promo payment is confirmed. Your content is being delivered now. Contact us on Telegram if you need help with your free bonus folder.';
               showTelegramRequest(result, reference);
               return;
