@@ -19,6 +19,6 @@ export function registerSecureCheckoutRedirects(app, secureUrl) {
     else if (videoId) params.set('video_id', videoId);
     else return res.status(400).type('text').send('Choose a video before checkout.');
     params.set('requestKey', crypto.randomUUID());
-    return res.redirect(303, `${origin}/checkout?${params}`);
+    return res.redirect(303, `${origin}/checkout/review?${params}`);
   });
 }

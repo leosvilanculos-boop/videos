@@ -38,7 +38,7 @@ test('video and bundle clicks reach the Secure payment page without browser pric
       assert.equal(response.headers.get('cache-control'), 'no-store, private');
       const target = new URL(response.headers.get('location'));
       assert.equal(target.origin, 'https://secure.example');
-      assert.equal(target.pathname, '/checkout');
+      assert.equal(target.pathname, '/checkout/review');
       assert.match(target.searchParams.get('requestKey'), /^[a-f0-9-]{36}$/);
       target.searchParams.delete('requestKey');
       assert.deepEqual(Object.fromEntries(target.searchParams), expected);
