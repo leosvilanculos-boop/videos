@@ -24,7 +24,7 @@ async function withServer(origin, run) {
   }
 }
 
-test('video and bundle clicks reach Walled on Secure without browser prices or return URLs', async () => {
+test('video and bundle clicks reach the Secure payment page without browser prices or return URLs', async () => {
   await withServer('https://secure.example/old-path/', async base => {
     for (const [path, expected] of [
       [storefront.checkoutUrl('', 0.01, 'Fake', 'Untrusted title', 'video & 1'), { video_id: 'video & 1' }],
@@ -38,7 +38,7 @@ test('video and bundle clicks reach Walled on Secure without browser prices or r
       assert.equal(response.headers.get('cache-control'), 'no-store, private');
       const target = new URL(response.headers.get('location'));
       assert.equal(target.origin, 'https://secure.example');
-      assert.equal(target.pathname, '/api/walled-checkout');
+      assert.equal(target.pathname, '/checkout');
       assert.match(target.searchParams.get('requestKey'), /^[a-f0-9-]{36}$/);
       target.searchParams.delete('requestKey');
       assert.deepEqual(Object.fromEntries(target.searchParams), expected);
