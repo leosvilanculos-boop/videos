@@ -8,7 +8,7 @@ const ALLOWED_EVENTS = new Set([
 function config() {
   let fixedProducts = {};
   try {
-    const raw = String(process.env.WALLED_FIXED_PRODUCTS_JSON || '').trim();
+    const raw = String(process.env.WALLED_VIDEO_FIXED_PRODUCTS_JSON || '').trim();
     if (raw) fixedProducts = JSON.parse(raw);
   } catch { fixedProducts = {}; }
   return {
