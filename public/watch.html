@@ -530,7 +530,7 @@
       }
       function startCheckout(price, maskedName, displayTitle, videoId, button) {
         var targetUrl = Storefront.checkoutUrl(EBOOKS_ORIGIN, price, maskedName, displayTitle, videoId);
-        if (targetUrl && Storefront.setCheckoutProcessing(button)) window.location.assign(targetUrl);
+        if (targetUrl) Storefront.confirmCheckout(targetUrl, button);
       }
       function setErr(t) { var el = document.getElementById('err-banner'); el.textContent = t || ''; el.hidden = !t; }
       function parseUrlParams() {

@@ -803,12 +803,12 @@
 
       function startCheckout(price, maskedName, displayTitle, videoId, button) {
         var targetUrl = Storefront.checkoutUrl(EBOOKS_ORIGIN, price, maskedName, displayTitle, videoId);
-        if (targetUrl && Storefront.setCheckoutProcessing(button)) window.location.assign(targetUrl);
+        if (targetUrl) Storefront.confirmCheckout(targetUrl, button);
       }
 
       function startPromoCheckout(event) {
         var button = event && event.currentTarget;
-        if (Storefront.setCheckoutProcessing(button)) window.location.assign(Storefront.bundleCheckoutUrl());
+        Storefront.confirmCheckout(Storefront.bundleCheckoutUrl(), button);
       }
 
       function setErr(t) {

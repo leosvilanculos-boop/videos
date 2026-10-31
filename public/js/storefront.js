@@ -57,6 +57,59 @@
     processingButtons = [];
   }
 
+
+  // Short notice shown before leaving for the secure checkout.
+  var confirmOpen = false;
+  function ensureConfirmStyles() {
+    if (document.getElementById('checkout-confirm-style')) return;
+    var st = document.createElement('style');
+    st.id = 'checkout-confirm-style';
+    st.textContent =
+      '.cc-overlay{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.72);backdrop-filter:blur(4px)}' +
+      '.cc-box{width:100%;max-width:360px;background:var(--surface,#1c1013);color:var(--text,#f5f5f7);border:1px solid var(--stroke-hover,rgba(255,255,255,.14));border-radius:14px;padding:1.4rem;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5)}' +
+      '.cc-box h2{font-size:1.1rem;margin:0 0 .5rem;letter-spacing:-.01em}' +
+      '.cc-box p{font-size:.88rem;color:var(--muted,#a5a7b1);margin:0 0 1.2rem;line-height:1.45}' +
+      '.cc-actions{display:flex;gap:.6rem}' +
+      '.cc-actions button{flex:1;padding:.7rem;border-radius:9px;font:inherit;font-weight:700;cursor:pointer;border:1px solid var(--stroke-hover,rgba(255,255,255,.14))}' +
+      '.cc-cancel{background:transparent;color:var(--text,#f5f5f7)}' +
+      '.cc-go{background:var(--primary,#ff1f3d);border-color:var(--primary,#ff1f3d)!important;color:#fff}' +
+      '.cc-go:hover{background:var(--primary-hover,#d40f2c)}';
+    document.head.appendChild(st);
+  }
+
+  function confirmCheckout(targetUrl, button) {
+    if (!targetUrl || confirmOpen || (button && button.disabled)) return;
+    if (!document.body) { if (setCheckoutProcessing(button)) global.location.assign(targetUrl); return; }
+    ensureConfirmStyles();
+    confirmOpen = true;
+    var previousFocus = document.activeElement;
+    var overlay = document.createElement('div');
+    overlay.className = 'cc-overlay';
+    overlay.innerHTML =
+      '<div class="cc-box" role="dialog" aria-modal="true" aria-labelledby="cc-title" aria-describedby="cc-text">' +
+        '<h2 id="cc-title">Going to secure checkout</h2>' +
+        '<p id="cc-text">For your privacy, a discreet name is shown instead of the video title.</p>' +
+        '<div class="cc-actions"><button type="button" class="cc-cancel">Cancel</button>' +
+        '<button type="button" class="cc-go">Continue</button></div>' +
+      '</div>';
+    function close() {
+      confirmOpen = false;
+      document.removeEventListener('keydown', onKey);
+      if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+      if (previousFocus && previousFocus.focus) previousFocus.focus();
+    }
+    function onKey(e) { if (e.key === 'Escape') close(); }
+    overlay.addEventListener('click', function (e) { if (e.target === overlay) close(); });
+    overlay.querySelector('.cc-cancel').addEventListener('click', close);
+    overlay.querySelector('.cc-go').addEventListener('click', function () {
+      close();
+      if (setCheckoutProcessing(button)) global.location.assign(targetUrl);
+    });
+    document.addEventListener('keydown', onKey);
+    document.body.appendChild(overlay);
+    overlay.querySelector('.cc-go').focus();
+  }
+
   if (global.addEventListener) {
     global.addEventListener('pageshow', function (event) {
       if (event.persisted) resetCheckoutProcessing();
@@ -613,6 +666,7 @@
     bundleCheckoutUrl: bundleCheckoutUrl,
     setCheckoutProcessing: setCheckoutProcessing,
     resetCheckoutProcessing: resetCheckoutProcessing,
+    confirmCheckout: confirmCheckout,
     watchUrl: watchUrl,
     shuffleVideos: shuffleVideos,
     formatDuration: formatDuration,
